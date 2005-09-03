@@ -1,4 +1,5 @@
 require 'socket'
+require 'thread'
 
 module DebugSocket
   @@seq = 0
@@ -24,24 +25,29 @@ module DebugSocket
       @debug_log << "#{host}:#{service}\n"
       @debug_rcount = 0
       @debug_wcount = 0
+      @debug_lock = Mutex.new
     end
 
     def debug_wdata(str)
-      str.each_line {|line|
-        @debug_log << @debug_wcount.to_s
-        @debug_wcount += line.length
-        @debug_log << ">"
-        @debug_log << line.dump << "\n"
+      @debug_lock.synchronize {
+	str.each_line {|line|
+	  @debug_log << @debug_wcount.to_s
+	  @debug_wcount += line.length
+	  @debug_log << ">"
+	  @debug_log << line.dump << "\n"
+	}
       }
     end
 
     def debug_rdata(str)
       return unless str
-      str.each_line {|line|
-        @debug_log << @debug_rcount.to_s
-        @debug_rcount += line.length
-        @debug_log << "<"
-        @debug_log << line.dump << "\n"
+      @debug_lock.synchronize {
+	str.each_line {|line|
+	  @debug_log << @debug_rcount.to_s
+	  @debug_rcount += line.length
+	  @debug_log << "<"
+	  @debug_log << line.dump << "\n"
+	}
       }
     end
 
