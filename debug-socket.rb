@@ -117,19 +117,19 @@ end
 class << TCPSocket
   alias debugsocket_original_open open
   def open(host, service, *rest, &block)
-    if self == TCPSocket
-      DebugSocket::TCPSock.debugsocket_original_open(host, service, *rest, &block)
-    else
+    if self <= TCPServer
       debugsocket_original_open(host, service, *rest, &block)
+    else
+      DebugSocket::TCPSock.debugsocket_original_open(host, service, *rest, &block)
     end
   end
 
   alias debugsocket_original_new new
   def new(host, service, *rest, &block)
-    if self == TCPSocket
-      DebugSocket::TCPSock.debugsocket_original_new(host, service, *rest, &block)
-    else
+    if self <= TCPServer
       debugsocket_original_new(host, service, *rest, &block)
+    else
+      DebugSocket::TCPSock.debugsocket_original_new(host, service, *rest, &block)
     end
   end
 end
