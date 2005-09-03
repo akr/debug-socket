@@ -126,7 +126,11 @@ class << TCPSocket
 
   alias debugsocket_original_new new
   def new(host, service, *rest, &block)
-    DebugSocket::TCPSock.debugsocket_original_new(host, service, *rest, &block)
+    if self == TCPSocket
+      DebugSocket::TCPSock.debugsocket_original_new(host, service, *rest, &block)
+    else
+      debugsocket_original_new(host, service, *rest, &block)
+    end
   end
 end
 
