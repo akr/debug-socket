@@ -4,8 +4,14 @@ require 'thread'
 module DebugSocket
   @@seq = 0
   def DebugSocket.open_log
+    base = ENV['DEBUG_SOCKET_BASE'] || '/tmp/debug-socket'
+    user = ENV['USER'] || Process.uid.to_s
     n = (@@seq += 1)
-    f = File.open("/tmp/debug-socket-#{n}", 'w')
+    filename = "#{base}-#{user}-#{n}"
+    f = File.open(filename, File::WRONLY|File::APPEND|File::CREAT|File::TRUNC, 0600)
+    s = f.stat
+    raise SecurityError.new("#{filename.inspect}: unexpected owner.") unless s.owned?
+    raise SecurityError.new("#{filename.inspect}: unexpected mode.") unless s.mode & 0777 == 0600
     f.sync = true
     f
   end
