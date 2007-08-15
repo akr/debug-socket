@@ -8,7 +8,8 @@ module DebugSocket
     user = ENV['USER'] || Process.uid.to_s
     n = (@@seq += 1)
     filename = "#{base}-#{user}-#{n}"
-    f = File.open(filename, File::WRONLY|File::APPEND|File::CREAT|File::TRUNC, 0600)
+    File.unlink filename if File.exist? filename
+    f = File.open(filename, File::WRONLY|File::APPEND|File::CREAT|File::TRUNC|File::EXCL, 0600)
     s = f.stat
     raise SecurityError.new("#{filename.inspect}: unexpected owner.") unless s.owned?
     raise SecurityError.new("#{filename.inspect}: unexpected mode.") unless s.mode & 0777 == 0600
@@ -19,16 +20,16 @@ module DebugSocket
   class TCPSock < TCPSocket
     def initialize(host, service, *rest)
       super
-      init_debugsocket(host, service)
+      init_debugsocket("connect-to", host, service)
     end
 
-    def init_debugsocket(host=nil, service=nil)
+    def init_debugsocket(meth, host=nil, service=nil)
       unless host
         address_family, port, host, address = self.peeraddr
         service ||= port
       end
       @debug_log = DebugSocket.open_log
-      @debug_log << "#{host}:#{service}\n"
+      @debug_log << "#{meth}: #{host}:#{service}\n"
       @debug_rcount = 0
       @debug_wcount = 0
       @debug_lock = Mutex.new
@@ -150,7 +151,7 @@ class TCPServer
   alias debugsocket_original_accept accept
   def accept
     sock = DebugSocket::TCPSock.for_fd(sysaccept)
-    sock.init_debugsocket
+    sock.init_debugsocket("accept-from")
     sock
   end
 end
